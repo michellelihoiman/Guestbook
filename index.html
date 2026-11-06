@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wedding Guestbook | 電子結婚簽名簿</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-fontawesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Elegant Serifs & Handwriting -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Great+Vibes&family=Noto+Serif+TC:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            100: '#FAF4E5',
+                            300: '#E6C887',
+                            400: '#D4AF37',
+                            500: '#C59B27',
+                            600: '#A37B1B',
+                        },
+                        champagne: '#F7E7CE',
+                        roseGold: '#B76E79',
+                    },
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        cormorant: ['Cormorant Garamond', 'serif'],
+                        script: ['Great Vibes', 'cursive'],
+                        noto: ['Noto Serif TC', 'serif'],
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.25)',
+                        'gold-glow': '0 0 20px rgba(212, 175, 55, 0.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Background & Styling */
+        body {
+            background-image: url('https://i.postimg.cc/Qd0K8JzN/wei-ming-ming-she-ji-(1).jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            font-family: 'Noto Serif TC', 'Cormorant Garamond', serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .glass-panel {
+            background: rgba(18, 18, 22, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+        }
+
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #FFF0CA 0%, #D4AF37 50%, #AA7C11 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .gold-border-gradient {
+            border-image: linear-gradient(to right, #B8860B, #FFD700, #B8860B) 1;
+        }
+
+        /* Canvas cursor customization */
+        #signCanvas {
+            cursor: crosshair;
+            touch-action: none; /* Prevents scrolling while drawing */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(212, 175, 55, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(212, 175, 55, 0.8);
+        }
+
+        /* Smooth floating animation for polaroids */
+        @keyframes floatIn {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95) rotate(-2deg);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotate(0deg);
+            }
+        }
+
+        .animate-float-in {
+            animation: floatIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .color-swatch.active {
+            transform: scale(1.25);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+            border-color: #D4AF37;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col justify-between overflow-x-hidden relative">
+
+    <!-- Top Overlay Header -->
+    <header class="w-full glass-panel sticky top-0 z-40 px-4 py-3 sm:px-8 border-b border-gold-400/30 flex flex-wrap justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid font-thin fa-heart text-gold-400 text-2xl sm:text-3xl animate-pulse"></i>
+            <div>
+                <h1 class="font-cinzel text-xl sm:text-2xl font-bold tracking-wider gold-gradient-text">OUR WEDDING GUESTBOOK</h1>
+                <p class="text-xs text-gold-100/70 font-cormorant tracking-widest uppercase">Wedding Celebration & Signatures</p>
+            </div>
+        </div>
+
+        <!-- Mode Toggle & Action Buttons -->
+        <div class="flex items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
+            <button id="btnNavPad" onclick="switchTab('pad')" class="px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 bg-gold-400 text-slate-900 shadow-gold-glow flex items-center space-x-2">
+                <i class="fa-solid fa-pen-nib"></i>
+                <span>賓客簽名板</span>
+            </button>
+            <button id="btnNavGallery" onclick="switchTab('gallery')" class="px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 bg-slate-800/80 text-gold-300 border border-gold-400/40 hover:bg-gold-400/20 flex items-center space-x-2">
+                <i class="fa-solid fa-book-open"></i>
+                <span>即時祝賀牆 (<span id="guestCount">0</span>)</span>
+            </button>
+            <button onclick="toggleFullscreen()" title="全螢幕展示" class="p-2.5 rounded-full bg-slate-800/80 text-gold-300 border border-gold-400/40 hover:bg-gold-400/20 transition-all">
+                <i id="fullscreenIcon" class="fa-solid fa-expand"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow container mx-auto px-2 sm:px-6 py-6 flex flex-col justify-center items-center z-10">
+
+        <!-- ================= SECTION 1: SIGNATURE PAD (TABLET MODE) ================= -->
+        <section id="sectionPad" class="w-full max-w-4xl flex flex-col items-center">
+            
+            <div class="text-center mb-4">
+                <h2 class="font-script text-3xl sm:text-5xl text-gold-300 mb-1">Welcome & Leave Your Wishes</h2>
+                <p class="text-sm sm:text-base text-slate-200/90 font-light">請在下方觸控板上寫上您的祝福或畫上圖畫，送給這對新人</p>
+            </div>
+
+            <!-- Main Canvas Container -->
+            <div class="w-full glass-panel rounded-2xl p-3 sm:p-5 shadow-2xl relative border border-gold-400/40 flex flex-col items-center">
+                
+                <!-- Decorative Frame Corners -->
+                <div class="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-gold-400/60 rounded-tl"></div>
+                <div class="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-gold-400/60 rounded-tr"></div>
+                <div class="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-gold-400/60 rounded-bl"></div>
+                <div class="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-gold-400/60 rounded-br"></div>
+
+                <!-- Canvas Wrapper -->
+                <div class="w-full bg-slate-950/70 rounded-xl overflow-hidden relative shadow-inner flex justify-center items-center border border-white/10" style="height: 52vh; min-height: 320px;">
+                    <canvas id="signCanvas" class="w-full h-full block"></canvas>
+
+                    <!-- Empty Canvas Placeholder Tip -->
+                    <div id="canvasTip" class="absolute pointer-events-none text-center text-slate-400/40 flex flex-col items-center justify-center">
+                        <i class="fa-solid fa-hand-pointer text-3xl mb-2 animate-bounce"></i>
+                        <span class="text-lg font-light tracking-widest">請在此處親筆簽名或繪圖</span>
+                    </div>
+                </div>
+
+                <!-- Drawing Toolbar -->
+                <div class="w-full mt-4 flex flex-wrap gap-3 items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-gold-400/20">
+                    
+                    <!-- Color Palette -->
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-gold-300/80 hidden sm:inline"><i class="fa-solid fa-palette mr-1"></i>顏色:</span>
+                        <div class="flex space-x-2">
+                            <button onclick="setColor('#FFFFFF', this)" class="color-swatch active w-7 h-7 rounded-full bg-white border-2 border-transparent transition-all shadow-sm" title="珍珠白"></button>
+                            <button onclick="setColor('#D4AF37', this)" class="color-swatch w-7 h-7 rounded-full bg-yellow-500 border-2 border-transparent transition-all shadow-sm" title="閃耀金"></button>
+                            <button onclick="setColor('#FFB6C1', this)" class="color-swatch w-7 h-7 rounded-full bg-pink-300 border-2 border-transparent transition-all shadow-sm" title="浪漫粉"></button>
+                            <button onclick="setColor('#87CEEB', this)" class="color-swatch w-7 h-7 rounded-full bg-sky-300 border-2 border-transparent transition-all shadow-sm" title="夢幻藍"></button>
+                            <button onclick="setColor('#333333', this)" class="color-swatch w-7 h-7 rounded-full bg-gray-800 border-2 border-white/30 transition-all shadow-sm" title="經典黑"></button>
+                        </div>
+                    </div>
+
+                    <!-- Stroke Size Selector -->
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-gold-300/80 hidden sm:inline"><i class="fa-solid fa-pen mr-1"></i>粗細:</span>
+                        <input type="range" id="brushSize" min="2" max="20" value="5" oninput="updateBrushSize(this.value)" class="w-20 sm:w-28 accent-gold-400 cursor-pointer">
+                    </div>
+
+                    <!-- Action Tools -->
+                    <div class="flex items-center space-x-2">
+                        <!-- Eraser Button -->
+                        <button id="btnEraser" onclick="toggleEraser()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600 transition-all flex items-center space-x-1">
+                            <i class="fa-solid fa-eraser"></i>
+                            <span class="hidden sm:inline">橡皮擦</span>
+                        </button>
+                        
+                        <!-- Undo Button -->
+                        <button onclick="undoCanvas()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600 transition-all flex items-center space-x-1" title="復原上一筆">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span class="hidden sm:inline">復原</span>
+                        </button>
+
+                        <!-- Clear Button -->
+                        <button onclick="clearCanvas()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-950/60 text-red-200 hover:bg-red-900/80 border border-red-700/50 transition-all flex items-center space-x-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span class="hidden sm:inline">重寫</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Button Area -->
+                <div class="w-full mt-4 flex justify-center">
+                    <button onclick="submitSignature()" class="w-full sm:w-2/3 py-3 rounded-xl bg-gradient-to-r from-gold-500 via-yellow-400 to-gold-600 text-slate-950 font-bold text-lg shadow-gold-glow hover:brightness-110 active:scale-95 transition-all duration-200 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>送出祝賀簽名</span>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= SECTION 2: LIVE GUESTBOOK GALLERY ================= -->
+        <section id="sectionGallery" class="w-full hidden flex-col items-center">
+            
+            <!-- Gallery Title & Header Controls -->
+            <div class="w-full flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <div>
+                    <h2 class="font-cinzel text-2xl sm:text-4xl text-gold-300 font-bold">GUESTBOOK GALLERY</h2>
+                    <p class="text-xs sm:text-sm text-slate-300/80 font-light">現場賓客的即時祝賀與簽名全集</p>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <button onclick="exportAllSignatures()" class="px-4 py-2 rounded-lg bg-slate-800/90 text-gold-300 border border-gold-400/40 hover:bg-gold-400 hover:text-slate-900 transition-all text-xs sm:text-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-download"></i>
+                        <span>打包下載簽名冊</span>
+                    </button>
+                    <button onclick="clearAllData()" class="px-3 py-2 rounded-lg bg-red-950/40 text-red-300 border border-red-800/40 hover:bg-red-900/60 transition-all text-xs" title="清空紀錄(測試用)">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Empty State Prompt -->
+            <div id="emptyGalleryState" class="hidden my-16 text-center text-slate-400 glass-panel p-8 rounded-2xl max-w-md">
+                <i class="fa-solid fa-heart-crack text-4xl mb-3 text-gold-400/40"></i>
+                <p class="text-lg font-light">目前尚無賓客簽名</p>
+                <p class="text-xs text-slate-400/70 mt-1">切換至「賓客簽名板」寫下第一筆祝福吧！</p>
+            </div>
+
+            <!-- Dynamic Live Signature Grid (Polaroid Style) -->
+            <div id="galleryGrid" class="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-2">
+                <!-- Signatures render here dynamically -->
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-3 text-center text-xs text-gold-100/50 glass-panel border-t border-gold-400/20 z-10">
+        <p>© Wedding Guestbook — Forever & Always</p>
+    </footer>
+
+    <!-- Custom Toast Message Modal -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-slate-900/95 text-gold-300 border border-gold-400/60 shadow-2xl z-50 transition-all duration-300 transform opacity-0 pointer-events-none flex items-center space-x-3">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-gold-400 text-lg"></i>
+        <span id="toastText" class="text-sm font-medium">訊息</span>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        // State variables
+        let canvas, ctx;
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+        let currentColor = '#FFFFFF';
+        let currentBrushSize = 5;
+        let isEraser = false;
+        let historyStack = [];
+        const MAX_HISTORY = 10;
+
+        // Storage Key
+        const STORAGE_KEY = 'wedding_guestbook_signatures_v1';
+
+        // Initial setup on window load
+        window.onload = function() {
+            initCanvas();
+            loadSignatures();
+            window.addEventListener('resize', resizeCanvas);
+        };
+
+        // Initialize Canvas
+        function initCanvas() {
+            canvas = document.getElementById('signCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+
+            // Touch & Mouse Event Listeners
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            // Touch Support for iPad / Mobile
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing, { passive: false });
+        }
+
+        // Resize Canvas to fit container dynamically while preserving pixel ratio
+        function resizeCanvas() {
+            if (!canvas) return;
+            const container = canvas.parentElement;
+            
+            // Save image data if resizing
+            let tempImage = null;
+            if (canvas.width > 0 && canvas.height > 0) {
+                tempImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            }
+
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            // Restore canvas settings
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // If we had content, restore it
+            if (tempImage) {
+                ctx.putImageData(tempImage, 0, 0);
+            }
+        }
+
+        // Save State for Undo functionality
+        function saveState() {
+            if (historyStack.length >= MAX_HISTORY) {
+                historyStack.shift();
+            }
+            historyStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+            document.getElementById('canvasTip').classList.add('hidden');
+        }
+
+        // Start Drawing
+        function startDrawing(e) {
+            isDrawing = true;
+            saveState();
+            const pos = getPos(e);
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        // Touch event handlers
+        function handleTouchStart(e) {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                startDrawing(touch);
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                draw(touch);
+            }
+        }
+
+        // Drawing Process with Smooth Quadratic Curves
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const pos = getPos(e);
+            const currentX = pos.x;
+            const currentY = pos.y;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+
+            // Smooth curve to midpoint
+            const midX = (lastX + currentX) / 2;
+            const midY = (lastY + currentY) / 2;
+            ctx.quadraticCurveTo(lastX, lastY, midX, midY);
+
+            if (isEraser) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.lineWidth = currentBrushSize * 3;
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = currentBrushSize;
+                
+                // Slight glow effect for high-end look
+                ctx.shadowBlur = 2;
+                ctx.shadowColor = currentColor;
+            }
+
+            ctx.stroke();
+            ctx.shadowBlur = 0; // reset glow
+
+            lastX = currentX;
+            lastY = currentY;
+        }
+
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                ctx.beginPath();
+            }
+        }
+
+        // Get relative coordinates on canvas
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        // Tools: Color Selection
+        function setColor(color, element) {
+            currentColor = color;
+            isEraser = false;
+            document.getElementById('btnEraser').classList.remove('bg-gold-400', 'text-slate-900');
+            document.getElementById('btnEraser').classList.add('bg-slate-800', 'text-slate-300');
+
+            document.querySelectorAll('.color-swatch').forEach(swatch => swatch.classList.remove('active'));
+            if (element) element.classList.add('active');
+        }
+
+        // Tools: Brush Size
+        function updateBrushSize(val) {
+            currentBrushSize = val;
+        }
+
+        // Tools: Toggle Eraser
+        function toggleEraser() {
+            isEraser = !isEraser;
+            const btn = document.getElementById('btnEraser');
+            if (isEraser) {
+                btn.classList.add('bg-gold-400', 'text-slate-900');
+                btn.classList.remove('bg-slate-800', 'text-slate-300');
+            } else {
+                btn.classList.remove('bg-gold-400', 'text-slate-900');
+                btn.classList.add('bg-slate-800', 'text-slate-300');
+            }
+        }
+
+        // Tools: Undo Last Stroke
+        function undoCanvas() {
+            if (historyStack.length > 0) {
+                const previousState = historyStack.pop();
+                ctx.putImageData(previousState, 0, 0);
+            } else {
+                clearCanvas();
+            }
+        }
+
+        // Tools: Clear Canvas
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            historyStack = [];
+            document.getElementById('canvasTip').classList.remove('hidden');
+        }
+
+        // Check if Canvas is empty
+        function isCanvasBlank() {
+            const pixelBuffer = new Uint32Array(
+                ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer
+            );
+            return !pixelBuffer.some(color => color !== 0);
+        }
+
+        // Submit Signature
+        function submitSignature() {
+            if (isCanvasBlank()) {
+                showToast("請先在簽名板上寫下您的祝福或簽名哦！", "fa-triangle-exclamation");
+                return;
+            }
+
+            // Export canvas as base64 image
+            const dataUrl = canvas.toDataURL('image/png');
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const newEntry = {
+                id: Date.now(),
+                image: dataUrl,
+                time: timestamp
+            };
+
+            // Save to LocalStorage
+            saveSignatureToStorage(newEntry);
+
+            // Confetti Animation
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#D4AF37', '#FFFFFF', '#FFB6C1']
+                });
+            }
+
+            showToast("感謝您的祝福！簽名已即時傳送至簽名冊。");
+
+            // Reset Canvas
+            clearCanvas();
+
+            // Auto Switch to Gallery view to show submitted signature
+            setTimeout(() => {
+                switchTab('gallery');
+            }, 800);
+        }
+
+        // Local Storage Helpers
+        function getSignaturesFromStorage() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveSignatureToStorage(entry) {
+            const list = getSignaturesFromStorage();
+            list.unshift(entry); // newest first
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+            renderGallery();
+        }
+
+        // Render Live Signature Gallery
+        function loadSignatures() {
+            renderGallery();
+        }
+
+        function renderGallery() {
+            const list = getSignaturesFromStorage();
+            const grid = document.getElementById('galleryGrid');
+            const emptyState = document.getElementById('emptyGalleryState');
+            const guestCount = document.getElementById('guestCount');
+
+            guestCount.textContent = list.length;
+            grid.innerHTML = '';
+
+            if (list.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            list.forEach((item, index) => {
+                // Random rotation for organic polaroid look
+                const rotations = ['rotate-1', '-rotate-1', 'rotate-2', '-rotate-2', 'rotate-0'];
+                const randomRot = rotations[index % rotations.length];
+
+                const card = document.createElement('div');
+                card.className = `glass-card rounded-2xl p-4 shadow-xl flex flex-col items-center border border-gold-400/30 transform hover:scale-105 transition-all duration-300 animate-float-in ${randomRot}`;
+                
+                card.innerHTML = `
+                    <div class="w-full bg-slate-950/90 rounded-xl p-2 mb-3 shadow-inner border border-white/10 flex justify-center items-center overflow-hidden" style="height: 180px;">
+                        <img src="${item.image}" alt="賓客簽名" class="max-h-full max-w-full object-contain filter drop-shadow">
+                    </div>
+                    <div class="w-full flex justify-between items-center px-1 text-xs text-slate-700">
+                        <span class="font-cormorant font-semibold tracking-widest text-gold-600"><i class="fa-solid fa-heart mr-1 text-roseGold"></i>SIGNED</span>
+                        <span class="text-slate-400 font-mono">${item.time}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Switch Navigation Tabs
+        function switchTab(tab) {
+            const btnPad = document.getElementById('btnNavPad');
+            const btnGallery = document.getElementById('btnNavGallery');
+            const secPad = document.getElementById('sectionPad');
+            const secGallery = document.getElementById('sectionGallery');
+
+            if (tab === 'pad') {
+                secPad.classList.remove('hidden');
+                secGallery.classList.add('hidden');
+                secGallery.classList.remove('flex');
+
+                btnPad.className = "px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 bg-gold-400 text-slate-900 shadow-gold-glow flex items-center space-x-2";
+                btnGallery.className = "px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 bg-slate-800/80 text-gold-300 border border-gold-400/40 hover:bg-gold-400/20 flex items-center space-x-2";
+                
+                // Re-adjust canvas width when switching back
+                setTimeout(resizeCanvas, 50);
+            } else {
+                secPad.classList.add('hidden');
+                secGallery.classList.remove('hidden');
+                secGallery.classList.add('flex');
+
+                btnGallery.className = "px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 bg-gold-400 text-slate-900 shadow-gold-glow flex items-center space-x-2";
+                btnPad.className = "px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 bg-slate-800/80 text-gold-300 border border-gold-400/40 hover:bg-gold-400/20 flex items-center space-x-2";
+            }
+        }
+
+        // Fullscreen Mode
+        function toggleFullscreen() {
+            const icon = document.getElementById('fullscreenIcon');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    showToast("無法啟用全螢幕模式", "fa-triangle-exclamation");
+                });
+                icon.className = "fa-solid fa-compress";
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    icon.className = "fa-solid fa-expand";
+                }
+            }
+        }
+
+        // Export/Download All Signatures
+        function exportAllSignatures() {
+            const list = getSignaturesFromStorage();
+            if (list.length === 0) {
+                showToast("目前尚無簽名紀錄可供下載！", "fa-circle-info");
+                return;
+            }
+
+            list.forEach((item, idx) => {
+                const a = document.createElement('a');
+                a.href = item.image;
+                a.download = `Wedding_Guestbook_Signature_${idx + 1}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+
+            showToast("已開始下載所有簽名圖檔！");
+        }
+
+        // Clear All Data
+        function clearAllData() {
+            if (confirm("確定要清空所有賓客簽名紀錄嗎？(此操作無法復原)")) {
+                localStorage.removeItem(STORAGE_KEY);
+                renderGallery();
+                showToast("已清空所有簽名紀錄。");
+            }
+        }
+
+        // Toast Notification Helper
+        function showToast(message, iconClass = "fa-circle-check") {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toastText');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastText.textContent = message;
+            toastIcon.className = `fa-solid ${iconClass} text-gold-400 text-lg`;
+
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
